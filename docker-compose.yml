@@ -1,49 +1,78 @@
 services:
-  # 1. VERİTABANI KONTEYNERİ (POSTGRESQL)
+
+  # PostgreSQL Database
   db:
     image: postgres:15
     container_name: weather_postgres
-    restart: always
-    env_file:
-      - .env  # Hassas bilgileri ve şifreyi doğrudan .env dosyasından okur
+    restart: unless-stopped
+
     environment:
-      POSTGRES_USER: postgres
+      POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
+
     ports:
       - "5432:5432"
+
     volumes:
       - pg_data:/var/lib/postgresql/data
 
-  # 2. ARAYÜZ KONTEYNERİ (STREAMLIT)
+      # These scripts run only when PostgreSQL creates a fresh database volume.
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+
+  # Streamlit Dashboard
   web:
-    image: ahmetavdatek/weather-app:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+
     container_name: weather_streamlit
-    restart: always
+    restart: unless-stopped
+
     env_file:
       - .env
+
     environment:
-      - DB_HOST=db  # Docker ağındaki veritabanı servis adı
+      DB_HOST: db
+      DB_PORT: 5432
+
     ports:
       - "8501:8501"
-    volumes:
-      - .:/app
+
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 
-# 3. YENİ: DOCKER İÇİ WEB VERİTABANI PANELİ (PGADMIN)
+  # pgAdmin
   pgadmin:
     image: dpage/pgadmin4
     container_name: weather_pgadmin
-    restart: always
+    restart: unless-stopped
+
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com    # Panele giriş mailin
-      PGADMIN_DEFAULT_PASSWORD: admin           # Panele giriş şifren
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+
     ports:
-      - "5050:80"                               # Panele 5050 portundan gireceğiz
+      - "5050:80"
+
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+
 
 volumes:
   pg_data:
