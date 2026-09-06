@@ -475,7 +475,7 @@ Current dashboard capabilities include:
 ## 📂 Project Structure
 
 ```text
-Weather_Data_Pipeline/
+Weather-Data-Engineering-Platform/
 │
 ├── airflow/
 │   ├── .astro/
