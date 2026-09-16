@@ -67,6 +67,38 @@ services:
       - weather_data_net
 
     restart: unless-stopped
+  
+  spark:
+    image: apache/spark:3.5.9-java17-python3
+    container_name: weather_spark
+    hostname: spark
+    user: root
+
+    environment:
+      HOME: /root
+      PYTHONPATH: /opt/spark/python:/opt/spark/python/lib/pyspark.zip:/opt/spark/python/lib/py4j-0.10.9.7-src.zip
+      PYSPARK_PYTHON: /usr/local/bin/python3
+      PYSPARK_DRIVER_PYTHON: /usr/local/bin/python3
+
+    command:
+      - bash
+      - -c
+      - |
+        sleep infinity
+
+    volumes:
+      - ../../spark_jobs:/opt/spark/work-dir/jobs:rw
+      - ./config/core-site.xml:/opt/spark/conf/core-site.xml:ro
+      - ./config/hdfs-site.xml:/opt/spark/conf/hdfs-site.xml:ro
+
+    networks:
+      - weather_data_net
+
+    depends_on:
+      - namenode
+      - datanode
+
+    restart: unless-stopped
 
 
 volumes:
