@@ -69,7 +69,9 @@ services:
     restart: unless-stopped
   
   spark:
-    image: apache/spark:3.5.9-java17-python3
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: weather_spark
     hostname: spark
     user: root
@@ -97,6 +99,9 @@ services:
     depends_on:
       - namenode
       - datanode
+
+    ports:
+      - "4040:4040"
 
     restart: unless-stopped
 
