@@ -1,0 +1,71 @@
+services:
+
+  spark-master:
+    image: apache/spark:3.5.9-java17-python3
+    container_name: weather_spark_master
+    hostname: spark-master
+    user: root
+
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.master.Master
+      - --host
+      - spark-master
+      - --port
+      - "7077"
+      - --webui-port
+      - "8080"
+
+    ports:
+      - "7077:7077"
+      - "8080:8080"
+
+    volumes:
+      - ../spark-hdfs/config/core-site.xml:/opt/spark/conf/core-site.xml:ro
+      - ../spark-hdfs/config/hdfs-site.xml:/opt/spark/conf/hdfs-site.xml:ro
+
+    networks:
+      - weather_data_net
+
+    restart: unless-stopped
+
+
+  spark-worker-1:
+    build:
+      context: ../spark-hdfs
+      dockerfile: Dockerfile
+    image: weather-spark-jdbc:3.5.9
+    container_name: weather_spark_worker_1
+    hostname: spark-worker-1
+    user: root
+
+    command:
+      - /opt/spark/bin/spark-class
+      - org.apache.spark.deploy.worker.Worker
+      - spark://spark-master:7077
+      - --cores
+      - "2"
+      - --memory
+      - "2g"
+      - --webui-port
+      - "8081"
+
+    depends_on:
+      - spark-master
+
+    ports:
+      - "18081:8081"
+
+    volumes:
+      - ../spark-hdfs/config/core-site.xml:/opt/spark/conf/core-site.xml:ro
+      - ../spark-hdfs/config/hdfs-site.xml:/opt/spark/conf/hdfs-site.xml:ro
+
+    networks:
+      - weather_data_net
+
+    restart: unless-stopped
+
+
+networks:
+  weather_data_net:
+    external: true
