@@ -13,11 +13,7 @@ jdbc_url = (
     "Weather_Data_Pipeline"
 )
 # %%
-jdbc_properties = {
-    "user": "postgres",
-    "password": "Avdatek5003",
-    "driver": "org.postgresql.Driver"
-}
+
 # %%
 historical_df = (
     spark.read
