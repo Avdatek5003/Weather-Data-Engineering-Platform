@@ -16,3 +16,6 @@ logs/
 # Veri ve Çıktılar (Tercihe bağlı, devasa raw verileri pushlamak istemezsin)
 data/
 src/extreme_values.txt
+
+# Local credentials
+infra/spark-hdfs/spark.env

@@ -79,8 +79,14 @@ services:
     environment:
       HOME: /root
       PYTHONPATH: /opt/spark/python:/opt/spark/python/lib/pyspark.zip:/opt/spark/python/lib/py4j-0.10.9.7-src.zip
-      PYSPARK_PYTHON: /usr/local/bin/python3
-      PYSPARK_DRIVER_PYTHON: /usr/local/bin/python3
+      PYSPARK_PYTHON: /usr/bin/python3
+      PYSPARK_DRIVER_PYTHON: /usr/bin/python3
+
+      # Weather Historical Pipeline
+      WEATHER_DB_USER: ${WEATHER_DB_USER:?WEATHER_DB_USER is required}
+      WEATHER_DB_PASSWORD: ${WEATHER_DB_PASSWORD:?WEATHER_DB_PASSWORD is required}
+      WEATHER_JDBC_URL: ${WEATHER_JDBC_URL:?WEATHER_JDBC_URL is required}
+      SPARK_MASTER_URL: spark://spark-master:7077
 
     command:
       - bash
