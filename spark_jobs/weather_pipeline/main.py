@@ -1,11 +1,19 @@
 import argparse
 import logging
+import os
 from datetime import date
 from time import perf_counter
 from uuid import uuid4
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
+from weather_pipeline.batch import build_batch_key
+from weather_pipeline.validation import validate_row_counts
+from weather_pipeline.completion import (
+    completion_exists,
+    validate_completion,
+    write_completion,
+)
 
 from weather_pipeline.config import PipelineConfig
 from weather_pipeline.extract import (
@@ -32,6 +40,12 @@ logger = logging.getLogger("weather_pipeline")
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Historical Weather Spark ETL"
+    )
+
+    parser.add_argument(
+        "--fail-after-silver",
+        choices=["0", "1"],
+        default="0",
     )
 
     parser.add_argument(
@@ -64,6 +78,8 @@ def parse_args():
     return args
 
 
+
+
 def main():
     logging.basicConfig(
         level=logging.INFO,
@@ -72,6 +88,8 @@ def main():
 
     args = parse_args()
     config = PipelineConfig.from_env()
+
+    batch_key = build_batch_key(args)
     run_id = str(uuid4())
     start_time = perf_counter()
 
@@ -79,7 +97,10 @@ def main():
         SparkSession.builder
         .appName(f"{config.spark_app_name}-{run_id[:8]}")
         .master(config.spark_master)
-        .config("spark.driver.host", "spark")
+        .config(
+            "spark.driver.host",
+            os.getenv("SPARK_DRIVER_HOST", "spark"),
+        )
         .config("spark.driver.bindAddress", "0.0.0.0")
         .config("spark.executor.cores", "2")
         .config("spark.executor.memory", "1g")
@@ -101,7 +122,27 @@ def main():
     }
 
     try:
-        logger.info("RUN_ID=%s MODE=%s", run_id, args.mode)
+        logger.info(
+            "BATCH_KEY=%s RUN_ID=%s MODE=%s",
+            batch_key,
+            run_id,
+            args.mode,
+        )   
+        if args.mode == "full" and completion_exists(spark, batch_key):
+            metadata = validate_completion(spark, batch_key)
+
+            logger.info(
+                "BATCH_ALREADY_COMPLETED_AND_VALIDATED "
+                "batch_key=%s completed_run_id=%s",
+                batch_key,
+                metadata["run_id"],
+            )
+
+            print(
+                "PIPELINE SKIPPED: "
+                "BATCH ALREADY COMPLETED AND VALIDATED"
+            )
+            return
 
         # EXTRACT
         historical_df = read_historical_weather(spark, config)
@@ -192,6 +233,13 @@ def main():
             quarantine_count,
         )
 
+        # Development-only fault injection.
+        if (
+            args.fail_after_silver == "1"
+            or os.getenv("WEATHER_TEST_FAIL_AFTER_SILVER") == "1"
+        ):
+            raise RuntimeError("INJECTED_FAILURE_AFTER_SILVER")
+
         # GOLD
         monthly_df = build_monthly_gold(silver_read)
         yearly_df = build_yearly_gold(silver_read)
@@ -216,8 +264,31 @@ def main():
             paths["yearly"]
         ).count()
 
-        assert monthly_count > 0
-        assert yearly_count > 0
+        if monthly_count <= 0:
+            raise ValueError("Monthly Gold output is empty")
+
+        if yearly_count <= 0:
+            raise ValueError("Yearly Gold output is empty")
+
+        if args.mode == "full":
+            write_completion(
+                spark=spark,
+                batch_key=batch_key,
+                run_id=run_id,
+                counts={
+                    "landing": landing_count,
+                    "silver": silver_count,
+                    "quarantine": quarantine_count,
+                    "monthly": monthly_count,
+                    "yearly": yearly_count,
+                },
+            )
+
+            logger.info(
+                "COMPLETION_MARKER_CREATED batch_key=%s run_id=%s",
+                batch_key,
+                run_id,
+            )
 
         elapsed = perf_counter() - start_time
 
