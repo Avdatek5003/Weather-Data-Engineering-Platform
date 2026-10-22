@@ -8,3 +8,4 @@ sqlalchemy
 psycopg2-binary
 python-dotenv
 apache-airflow-providers-postgres
+apache-airflow-providers-apache-spark==6.3.3
