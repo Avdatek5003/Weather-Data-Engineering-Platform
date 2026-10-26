@@ -19,3 +19,7 @@ src/extreme_values.txt
 
 # Local credentials
 infra/spark-hdfs/spark.env
+# Temporary Spark/HDFS integration test scripts
+/spark_jobs/test_completion.py
+/spark_jobs/test_invalid_completion.py
+/spark_jobs/test_validate_completion.py

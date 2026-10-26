@@ -1,5 +1,5 @@
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from airflow.sdk import DAG
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
@@ -19,6 +19,11 @@ with DAG(
             type="boolean",
             description="Inject a failure after Silver for testing",
         ),
+        "test_fail_first_attempt": Param(
+            False,
+            type="boolean",
+            description="Inject failure only on the first Airflow attempt",
+        ),
     },
     tags=["weather", "spark", "historical", "hdfs"],
 ) as dag:
@@ -37,6 +42,10 @@ with DAG(
             "--end-date", "{{ dag_run.conf.get('end_date', '1940-01-31') }}",
             "--fail-after-silver",
             "{{ '1' if params.test_fail_after_silver else '0' }}",
+            "--fail-first-attempt",
+            "{{ '1' if params.test_fail_first_attempt else '0' }}",
+            "--airflow-try-number",
+            "{{ ti.try_number }}",
         ],
         conf={
             "spark.driver.host": "scheduler",
@@ -55,5 +64,6 @@ with DAG(
         executor_memory="1g",
         driver_memory="1g",
         verbose=False,
-        retries=0,
+        retries=1,
+        retry_delay=timedelta(seconds=30),
     )

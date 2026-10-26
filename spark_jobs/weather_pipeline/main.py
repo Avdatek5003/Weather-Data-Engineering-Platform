@@ -55,6 +55,18 @@ def parse_args():
         help="Sample or full historical processing",
     )
 
+    parser.add_argument(
+        "--fail-first-attempt",
+        choices=["0", "1"],
+        default="0",
+    )
+
+    parser.add_argument(
+        "--airflow-try-number",
+        type=int,
+        default=1,
+    )
+
     parser.add_argument("--start-date")
     parser.add_argument("--end-date")
 
@@ -233,12 +245,20 @@ def main():
             quarantine_count,
         )
 
-        # Development-only fault injection.
-        if (
+        should_fail_always = (
             args.fail_after_silver == "1"
             or os.getenv("WEATHER_TEST_FAIL_AFTER_SILVER") == "1"
-        ):
-            raise RuntimeError("INJECTED_FAILURE_AFTER_SILVER")
+        )
+
+        should_fail_first_attempt = (
+            args.fail_first_attempt == "1"
+            and args.airflow_try_number == 1
+        )
+
+        if should_fail_always or should_fail_first_attempt:
+            raise RuntimeError(
+                "INJECTED_FAILURE_AFTER_SILVER"
+            )
 
         # GOLD
         monthly_df = build_monthly_gold(silver_read)
