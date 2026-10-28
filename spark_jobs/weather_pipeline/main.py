@@ -227,17 +227,19 @@ def main():
             paths["quarantine"]
         ).count()
 
-        if landing_count != silver_count + quarantine_count:
-            raise ValueError(
-                "Reconciliation failed: "
-                f"{landing_count} != "
-                f"{silver_count} + {quarantine_count}"
-            )
+        validate_row_counts(
+            landing=landing_count,
+            silver=silver_count,
+            quarantine=quarantine_count,
+        )
 
-        if silver_count == 0:
-            raise ValueError(
-                "No valid Silver records remain for Gold"
-            )
+        logger.info(
+            "ROW_COUNT_VALIDATION=PASSED "
+            "landing=%d silver=%d quarantine=%d",
+            landing_count,
+            silver_count,
+            quarantine_count,
+        )
 
         logger.info(
             "SILVER_ROWS=%d QUARANTINE_ROWS=%d",

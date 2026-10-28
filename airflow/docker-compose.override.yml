@@ -6,11 +6,11 @@ services:
 
     volumes:
       # Spark ETL application files
-      - C:/Python/Weather_Data_Pipeline/spark_jobs:/opt/spark/work-dir/jobs:ro
+      - ${WEATHER_PROJECT_ROOT:?Set WEATHER_PROJECT_ROOT}/spark_jobs:/opt/spark/work-dir/jobs:ro
 
       # Existing Hadoop configuration
-      - C:/Python/Weather_Data_Pipeline/infra/spark-hdfs/config/core-site.xml:/opt/spark/conf/core-site.xml:ro
-      - C:/Python/Weather_Data_Pipeline/infra/spark-hdfs/config/hdfs-site.xml:/opt/spark/conf/hdfs-site.xml:ro
+      - ${WEATHER_PROJECT_ROOT:?Set WEATHER_PROJECT_ROOT}/infra/spark-hdfs/config/core-site.xml:/opt/spark/conf/core-site.xml:ro
+      - ${WEATHER_PROJECT_ROOT:?Set WEATHER_PROJECT_ROOT}/infra/spark-hdfs/config/hdfs-site.xml:/opt/spark/conf/hdfs-site.xml:ro
 
     environment:
       # Hadoop configuration location

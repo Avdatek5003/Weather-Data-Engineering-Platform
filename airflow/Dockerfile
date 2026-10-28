@@ -7,8 +7,6 @@ FROM eclipse-temurin:17-jre AS java17
 # Astro Runtime
 FROM astrocrpublic.azurecr.io/runtime:3.3-2
 
-FROM astrocrpublic.azurecr.io/runtime:3.3-2
-
 # Slow PyPI connections: longer timeout and retries
 ENV PIP_DEFAULT_TIMEOUT=300
 ENV PIP_RETRIES=10
